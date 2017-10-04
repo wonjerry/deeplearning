@@ -46,7 +46,8 @@ MatrixMN.prototype.multiply = function (vector, result) {
 
     for (var col = 0; col < self.numCols; col++, ix++) {
       // 나의 행렬값과 vector의 행렬 값을 곱한 것들을 result에 더한다
-      result.values[row] += self.values[ix] * vector.values[col]
+      result[row] += self.values[ix] * vector[col]
+
     }
   }
 
@@ -55,16 +56,17 @@ MatrixMN.prototype.multiply = function (vector, result) {
 MatrixMN.prototype.multiplyTransposed = function (vector, result) {
   var self = this
 
-  console.assert(self.numRows <= result.length)
-  console.assert(self.numCols <= vector.length)
+  console.assert(self.numRows <= vector.length)
+  console.assert(self.numCols <= result.length)
 
-  for (var col = 0; col < self.numRows; col++) {
+  for (var col = 0; col < self.numCols; col++) {
 
     result[col] = 0
 
-    for (var row = 0; row < self.numCols; row++, ix += self.numCols) {
+    for (var row = 0, ix = col; row < self.numRows; row++, ix += self.numCols) {
 
-      result.values[col] += self.values[ix] * vector.values[row]
+      result[col] += self.values[ix] * vector[row]
+      //console.log(JSON.stringify(self.values[ix]))
     }
   }
 }
@@ -95,12 +97,12 @@ MatrixMN.prototype.getValue = function (row, col) {
 function NeuralNetwork () {
   var self = this
 
-  self.numInput = 0
-  self.numOutput = 0
-  self.numAllLayers = 0
+  self.numInput = 0.0
+  self.numOutput = 0.0
+  self.numAllLayers = 0.0
 
-  self.bias = 0
-  self.alpha = 0
+  self.bias = 0.0
+  self.alpha = 0.0
 
   self.layerNeuronAct = []
   self.layerNeuronGrad = []
@@ -130,7 +132,7 @@ NeuralNetwork.prototype.init = function (numInput, numOutput, numHiddenLayers) {
   self.output = self.numLayerActs[numHiddenLayers + 1] - 1
   self.numAllLayers = numHiddenLayers + 2
 
-  self.bias = 1
+  self.bias = 1.0
   self.alpha = 0.15
 
   //모든 레이어에 대해
@@ -138,22 +140,21 @@ NeuralNetwork.prototype.init = function (numInput, numOutput, numHiddenLayers) {
   // 뭔가 여기 잘 이해 안된다
 
   for (var i = 0; i < self.numAllLayers; i++) {
-    self.layerNeuronAct[i] = [].fill.call({length: self.numLayerActs[i]}, 0)
+    self.layerNeuronAct[i] = [].fill.call({length: self.numLayerActs[i]}, 0.0)
     self.layerNeuronAct[i][self.numLayerActs[i] - 1] = self.bias
   }
 
   for (var i = 0; i < self.numAllLayers; i++) {
-    self.layerNeuronGrad[i] = [].fill.call({length: self.numLayerActs[i]}, 0)
+    self.layerNeuronGrad[i] = [].fill.call({length: self.numLayerActs[i]}, 0.0)
   }
 
   for (var i = 0; i < self.numAllLayers - 1; i++) {
-    self.weights[i] = new MatrixMN(self.layerNeuronAct[i + 1].length - 1, self.layerNeuronAct[i].length)
-
+    self.weights[i] = new MatrixMN()
+    self.weights[i].init(self.layerNeuronAct[i + 1].length - 1, self.layerNeuronAct[i].length)
     for (var ix = 0; ix < self.weights[i].numRows * self.weights[i].numCols; ix++) {
       self.weights[i].values[ix] = Math.random() / Number.MAX_SAFE_INTEGER * 0.1
     }
   }
-
 }
 
 NeuralNetwork.prototype.getSigmoid = function (x) {
@@ -211,7 +212,6 @@ NeuralNetwork.prototype.propForward = function () {
     self.weights[i].multiply(self.layerNeuronAct[i], self.layerNeuronAct[i + 1])
     // 여기가 activation 함수 적용
     self.applyRELUToVector(self.layerNeuronAct[i + 1])
-
   }
 }
 
@@ -222,17 +222,20 @@ NeuralNetwork.prototype.propBackward = function (target) {
 
   for (var d = 0, len = self.layerNeuronGrad[l].length - 1; d < len; d++) {
     var outputValue = self.layerNeuronAct[l][d]
+
     // E 함수 미분한 것을 적용하는 것 이다
     self.layerNeuronGrad[l][d] = (target[d] - outputValue) * self.getRELUGradFromY(outputValue)
+
   }
 
   for (var i = self.weights.length - 1; i >= 0; i--) {
     self.weights[i].multiplyTransposed(self.layerNeuronGrad[i + 1], self.layerNeuronGrad[i])
 
-    for (var d = 0, len = self.layerNeuronAct[i].length; d < len; d++) {
-      self.layerNeuronGrad[i][d] += self.getRELUGradFromY(self.layerNeuronAct[i][d])
+    for (var j = 0, len = self.layerNeuronAct[i].length; j < len; j++) {
+      self.layerNeuronGrad[i][j] += self.getRELUGradFromY(self.layerNeuronAct[i][j])
     }
   }
+
 
   for (var i = self.weights.length - 1; i >= 0; i--) {
 
@@ -248,7 +251,7 @@ NeuralNetwork.prototype.updateWeight = function (weightMatrix, nextLayerGrad, pr
     for (var col = 0; col < weightMatrix.numCols; col++) {
       var delta_w = self.alpha * nextLayerGrad[row] * prevLayerAct[col]
 
-      weightMatrix[weightMatrix.get1DIndex(row, col)] += delta_w
+      weightMatrix.values[weightMatrix.get1DIndex(row, col)] += delta_w
     }
   }
 }
@@ -275,12 +278,12 @@ NeuralNetwork.prototype.copyOutputVector = function (copy, copy_bias) {
 }
 
 var x = [].fill.call({length: 2}, 0.0)
-var y_target = [0.3, 0]
-var y_temp = [0, 0]
+var y_target = [0.8, 0.0]
+var y_temp = [0.0, 0.0]
 
 var nn = new NeuralNetwork()
 
-nn.init(2, 1, 1)
+nn.init(2.0, 1.0, 1.0)
 nn.alpha = 0.1
 
 for (var i = 0; i < 100; i++) {
@@ -289,7 +292,8 @@ for (var i = 0; i < 100; i++) {
   nn.propForward()
 
   nn.copyOutputVector(y_temp)
-  console.log(y_temp)
+  //console.log('order : ', i , ' - ' ,y_temp)
+  console.log(JSON.stringify(nn.weights))
 
   nn.propBackward(y_target)
 }
