@@ -40,14 +40,13 @@ Neuron.prototype.propBackward = function (target) {
 
 Neuron.prototype.feedFowardAndPrint = function (input) {
   var self = this
-  console.log("input : " , input , " " ,self.feedFoward(input))
+  console.log('input : ', input, ' ', self.feedFoward(input))
 }
-
 
 var my_neuron = new Neuron(2.0, 1.0)
 
-for(var i = 0; i < 100; i++){
-  console.log('training : ' , i)
+for (var i = 0; i < 100; i++) {
+  console.log('training : ', i)
 
   my_neuron.feedFowardAndPrint(1.0)
   my_neuron.propBackward(4.0)

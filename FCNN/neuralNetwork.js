@@ -96,19 +96,27 @@ MatrixMN.prototype.getValue = function (row, col) {
 
 function NeuralNetwork () {
   var self = this
-
+  //input layer의 입력이 몇 개냐
   self.numInput = 0.0
+  //output layer의 출력이 몇개냐
   self.numOutput = 0.0
+  // 액티베이션 함수가 있는 뉴런들(hidden layer) + 입력,출력 레이어(2)
   self.numAllLayers = 0.0
 
+  // bias는 고정적이고 bias의 weight값을 조정 함으로써 bias를 조정하는 방식으로 구현이 되어있다
   self.bias = 0.0
+  // learning rate
   self.alpha = 0.0
 
-  self.layerNeuronAct = []
-  self.layerNeuronGrad = []
+  // 2차원으로 구성 될 것이다
+  // 배열로 구성되는 이유는 레이어가(뉴런) 여러개일 수 있기 때문이다
+  // js에서는 배열이 벡터와 유사함으로 2차원 배열로 구현해도 무방했다
+  // 액티베이션 된 후의 값을 저장할 것 이다
+  self.layerNeuronAct = [] // layerNeuronAct[0] = input layer,  layerNeuronAct[numAllLayers - 1] = output layer, layerNeuronAct[i][j] = activation value
+  self.layerNeuronGrad = [] // back propagation에서 사용되는 gradient 값이 저장된다
   self.weights = []
 
-  self.numLayerActs = []
+  self.numLayerActs = [] // 각 layer의 activation value의 개수를 의미한다 bias까지 포함되어어있다
 }
 
 /**
@@ -166,7 +174,7 @@ NeuralNetwork.prototype.getSigmoidGradFromY = function (y) {
 }
 
 NeuralNetwork.prototype.getRELU = function (x) {
-  return 0.0 > x ? 0.0 : x
+  return Math.max(0.0, x)
 }
 
 NeuralNetwork.prototype.getRELUGradFromY = function (x) {
@@ -236,7 +244,6 @@ NeuralNetwork.prototype.propBackward = function (target) {
     }
   }
 
-
   for (var i = self.weights.length - 1; i >= 0; i--) {
 
     self.updateWeight(self.weights[i], self.layerNeuronGrad[i + 1], self.layerNeuronAct[i])
@@ -278,7 +285,7 @@ NeuralNetwork.prototype.copyOutputVector = function (copy, copy_bias) {
 }
 
 var x = [].fill.call({length: 2}, 0.0)
-var y_target = [0.8, 0.0]
+var y_target = [1.8, 0.3]
 var y_temp = [0.0, 0.0]
 
 var nn = new NeuralNetwork()
@@ -292,9 +299,9 @@ for (var i = 0; i < 100; i++) {
   nn.propForward()
 
   nn.copyOutputVector(y_temp)
-  //console.log('order : ', i , ' - ' ,y_temp)
-  console.log(JSON.stringify(nn.weights))
-
+  console.log('order : ', i, ' - ', y_temp)
+  //console.log(JSON.stringify(nn.weights))
+  if(Math.abs(y_temp[0] - y_target[0]) < 0.01) break
   nn.propBackward(y_target)
 }
 
